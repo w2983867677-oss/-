@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>村户慧眼台账系统 · 基于航拍地图的村户台账可视化管理平台</title>
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+<!-- 顶栏 -->
+<header class="topbar">
+  <div class="brand">
+    <div class="logo">慧眼</div>
+    <div class="brand-text">
+      <h1>村户慧眼台账系统</h1>
+      <span class="subtitle">基于航拍地图的村户台账可视化管理平台 · 围场县银窝沟乡某村</span>
+    </div>
+  </div>
+  <nav class="tabs" id="tabs">
+    <button class="tab active" data-view="map">航拍台账</button>
+    <button class="tab" data-view="list">户表管理</button>
+    <button class="tab" data-view="dashboard">汇报看板</button>
+    <button class="tab" data-view="validate">导入校验</button>
+    <button class="tab" data-view="io">备份导出</button>
+    <button class="tab" data-view="ai">AI 辅助</button>
+    <button class="tab" data-view="log">操作日志</button>
+  </nav>
+  <div class="topbar-right">
+    <span class="role-badge" id="roleBadge" title="点击切换角色">访客</span>
+    <button class="btn-mini" id="searchBtn" title="全局搜索 (/)">🔍</button>
+  </div>
+</header>
+
+<!-- 全局搜索浮层 -->
+<div class="search-overlay" id="searchOverlay" hidden>
+  <div class="search-box">
+    <input id="globalSearch" type="text" placeholder="搜索户主/成员编号、电话、门牌、产业、备注…" autocomplete="off"/>
+    <div class="search-results" id="searchResults"></div>
+  </div>
+</div>
+
+<main id="main">
+  <!-- ========== 航拍台账 ========== -->
+  <section class="view active" id="view-map">
+    <div class="map-toolbar">
+      <div class="map-switch" id="mapSwitch"></div>
+      <div class="map-tools">
+        <label class="chk"><input type="checkbox" id="toggleAnnotated"/> 门牌标注图</label>
+        <label class="chk"><input type="checkbox" id="toggleLabels" checked/> 显示标签</label>
+        <label class="chk"><input type="checkbox" id="editPos"/> 编辑点位</label>
+        <select id="mapGroupFilter" class="mini-select"><option value="">全部分组</option></select>
+        <select id="mapTagFilter" class="mini-select"><option value="">全部人群</option></select>
+        <span class="map-hint" id="mapHint">点击点位查看该户台账</span>
+      </div>
+    </div>
+    <div class="map-stage" id="mapStage">
+      <div class="map-canvas" id="mapCanvas">
+        <img id="mapImg" alt="航拍图" />
+        <div class="markers" id="markers"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== 户表管理 ========== -->
+  <section class="view" id="view-list">
+    <div class="list-toolbar">
+      <input id="listSearch" class="grow" type="text" placeholder="按户主/成员编号、电话、门牌、产业、备注搜索…" />
+      <select id="filterGroup" class="mini-select"><option value="">全部组</option></select>
+      <select id="filterTag" class="mini-select"><option value="">全部重点人群</option></select>
+      <select id="filterIndustry" class="mini-select">
+        <option value="">产业不限</option>
+        <option value="plant">有种植</option>
+        <option value="breed">有养殖</option>
+        <option value="none">无产业</option>
+      </select>
+      <button class="btn primary" id="addHouseholdBtn">＋ 新增户</button>
+      <span class="count-pill" id="listCount"></span>
+    </div>
+    <div class="table-wrap">
+      <table class="ledger-table" id="ledgerTable">
+        <thead><tr>
+          <th>户编号</th><th>组</th><th>户主</th><th>门牌</th><th>成员</th>
+          <th>电话</th><th>种植</th><th>养殖</th><th>重点人群</th><th>照片</th><th>操作</th>
+        </tr></thead>
+        <tbody id="ledgerBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ========== 汇报看板 ========== -->
+  <section class="view" id="view-dashboard">
+    <div class="dash-cards" id="dashCards"></div>
+    <div class="dash-grid">
+      <div class="dash-panel"><h3>各组户数 / 人口</h3><canvas id="chartGroups" height="220"></canvas></div>
+      <div class="dash-panel"><h3>重点人群分布</h3><canvas id="chartTags" height="220"></canvas></div>
+      <div class="dash-panel"><h3>产业结构(户)</h3><canvas id="chartIndustry" height="220"></canvas></div>
+      <div class="dash-panel"><h3>种植 / 养殖规模(估算)</h3><div id="scaleStats" class="scale-stats"></div></div>
+    </div>
+    <div class="dash-panel full">
+      <h3>重点人群名单（困难人群识别）</h3>
+      <div id="keyPeople" class="key-people"></div>
+    </div>
+  </section>
+
+  <!-- ========== 导入校验 ========== -->
+  <section class="view" id="view-validate">
+    <div class="panel">
+      <h3>批量导入校验</h3>
+      <p class="muted">检测字段缺失、身份证/电话格式、门牌/经纬度异常、重复户等问题。可校验当前台账，或选择 Excel 文件预检。</p>
+      <div class="row">
+        <button class="btn" id="validateCurrent">校验当前台账</button>
+        <label class="btn ghost">选择 Excel 预检<input type="file" id="validateFile" accept=".xlsx,.xls" hidden/></label>
+        <span id="validateSummary" class="muted"></span>
+      </div>
+      <div id="validateResult" class="validate-result"></div>
+    </div>
+  </section>
+
+  <!-- ========== 备份导出 ========== -->
+  <section class="view" id="view-io">
+    <div class="panel">
+      <h3>数据导入</h3>
+      <p class="muted">支持导入脱敏 Excel 台账（同模板）。导入前自动校验，可选择「合并」或「覆盖」。</p>
+      <div class="row">
+        <label class="btn primary">选择 Excel 导入<input type="file" id="importFile" accept=".xlsx,.xls" hidden/></label>
+        <label class="chk"><input type="radio" name="importMode" value="merge" checked/> 合并</label>
+        <label class="chk"><input type="radio" name="importMode" value="replace"/> 覆盖</label>
+        <a class="btn ghost" id="downloadTemplate">下载空白模板</a>
+      </div>
+    </div>
+    <div class="panel">
+      <h3>备份与导出</h3>
+      <div class="row wrap">
+        <button class="btn" id="backupBtn">⬇ 一键备份(JSON)</button>
+        <label class="btn ghost">⬆ 恢复备份<input type="file" id="restoreFile" accept=".json" hidden/></label>
+        <button class="btn" id="exportExcel">导出 Excel 台账</button>
+        <button class="btn" id="exportPdf">导出 PDF 汇报页</button>
+        <button class="btn" id="exportImg">导出看板图片</button>
+        <button class="btn danger" id="resetData">恢复初始数据</button>
+      </div>
+      <p class="muted" id="ioStatus"></p>
+    </div>
+  </section>
+
+  <!-- ========== AI 辅助 ========== -->
+  <section class="view" id="view-ai">
+    <div class="panel">
+      <h3>AI 辅助功能（脱敏数据 · 本地规则引擎）</h3>
+      <p class="muted">在脱敏数据基础上演示：照片标注信息自动识别、地址/点位匹配、入户走访摘要生成。无需联网、不外传数据。</p>
+      <div class="ai-tools">
+        <button class="btn" id="aiPhotoMatch">① 照片标注自动识别与关联</button>
+        <button class="btn" id="aiGeoMatch">② 门牌/点位智能匹配</button>
+        <button class="btn" id="aiSummaryAll">③ 批量生成走访摘要</button>
+      </div>
+      <div id="aiOutput" class="ai-output"></div>
+    </div>
+  </section>
+
+  <!-- ========== 操作日志 ========== -->
+  <section class="view" id="view-log">
+    <div class="panel">
+      <h3>操作日志</h3>
+      <div class="row">
+        <button class="btn ghost" id="clearLog">清空日志</button>
+        <span class="muted" id="logCount"></span>
+      </div>
+      <table class="log-table"><thead><tr><th>时间</th><th>角色</th><th>操作</th><th>对象</th><th>详情</th></tr></thead>
+        <tbody id="logBody"></tbody></table>
+    </div>
+  </section>
+</main>
+
+<!-- 户详情 / 编辑 抽屉 -->
+<div class="drawer-mask" id="drawerMask" hidden></div>
+<aside class="drawer" id="drawer" hidden></aside>
+
+<!-- 角色切换弹窗 -->
+<div class="modal-mask" id="roleModal" hidden>
+  <div class="modal">
+    <h3>切换角色</h3>
+    <p class="muted">查看角色仅浏览；编辑角色可增删改并记录日志。</p>
+    <div class="role-options">
+      <button class="btn ghost" data-role="viewer">👁 查看角色（访客）</button>
+      <div class="editor-login">
+        <input type="password" id="adminPwd" placeholder="编辑口令(默认 ysu2026)" />
+        <button class="btn primary" data-role="editor">✎ 进入编辑角色</button>
+      </div>
+    </div>
+    <button class="modal-close" id="roleModalClose">×</button>
+  </div>
+</div>
+
+<div class="toast" id="toast" hidden></div>
+
+<!-- 依赖库(本地, 离线可用) -->
+<script src="vendor/xlsx.full.min.js"></script>
+<script src="vendor/jspdf.umd.min.js"></script>
+<script src="vendor/html2canvas.min.js"></script>
+<!-- 数据 -->
+<script src="data/ledger-data.js"></script>
+<!-- 应用 -->
+<script src="js/util.js"></script>
+<script src="js/store.js"></script>
+<script src="js/map.js"></script>
+<script src="js/list.js"></script>
+<script src="js/dashboard.js"></script>
+<script src="js/validate.js"></script>
+<script src="js/io.js"></script>
+<script src="js/ai.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

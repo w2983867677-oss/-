@@ -1,0 +1,8 @@
+# 系统 / 编辑器临时文件
+Thumbs.db
+ehthumbs.db
+desktop.ini
+.DS_Store
+*.tmp
+*.log
+~$*
