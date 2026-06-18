@@ -48,7 +48,7 @@ const ListView={
         <td>${(h.members||[]).length}</td><td>${U.esc(h.phone||'—')}</td>
         <td class="wrap">${U.esc(h.planting||'—')}</td><td class="wrap">${U.esc(h.breeding||'—')}</td>
         <td class="wrap">${tags||'—'}</td>
-        <td>${thumb?`<img class="thumb-mini" src="${U.esc(thumb)}" loading="lazy"/>`:'—'}</td>
+        <td>${thumb?`<img class="thumb-mini" src="${U.esc(U.img(thumb))}" loading="lazy"/>`:'—'}</td>
         <td>
           <button class="icon-btn" data-act="view" title="详情">👁</button>
           <button class="icon-btn" data-act="edit" title="编辑">✎</button>
@@ -80,16 +80,16 @@ const Drawer={
     const head=(h.members||[])[0]||{};
     const members=(h.members||[]).map(m=>`
       <div class="member-card">
-        <img src="${U.esc((m.photos&&m.photos[0])||'')}" onerror="this.style.visibility='hidden'"/>
+        <img src="${U.esc(U.img((m.photos&&m.photos[0])||''))}" onerror="this.style.visibility='hidden'"/>
         <div class="mi">
           <div><b>${U.esc(m.code||'(未命名)')}</b> <span class="rel">${U.esc(m.relation||'')}</span> ${m.gender?U.esc(m.gender):''}</div>
           <div class="muted">证件:${U.esc(m.idMask||'—')}</div>
           ${m.note?`<div class="muted">备注:${U.esc(m.note)}</div>`:''}
           ${m.photos&&m.photos.length>1?`<div class="muted">照片 ${m.photos.length} 张</div>`:''}
         </div></div>`).join('');
-    const hp=(h.housePhotos||[]).map(p=>`<img src="${U.esc(p)}" onclick="U.lightbox('${U.esc(p)}')" loading="lazy"/>`).join('');
+    const hp=(h.housePhotos||[]).map(p=>{const s=U.img(p);return `<img src="${U.esc(s)}" onclick="U.lightbox('${U.esc(s)}')" loading="lazy"/>`;}).join('');
     const allPhotos=[].concat(...(h.members||[]).map(m=>m.photos||[]));
-    const pp=allPhotos.map(p=>`<img src="${U.esc(p)}" onclick="U.lightbox('${U.esc(p)}')" loading="lazy"/>`).join('');
+    const pp=allPhotos.map(p=>{const s=U.img(p);return `<img src="${U.esc(s)}" onclick="U.lightbox('${U.esc(s)}')" loading="lazy"/>`;}).join('');
     const tags=(h.tags||[]).map(t=>`<span class="mini-tag">${U.esc(t)}</span>`).join('')+(h.isLeader?'<span class="mini-tag leader-flag">组长 ★</span>':'');
     this._shell(`
       <div class="drawer-head"><div><h3>${U.esc(h.id)} · ${U.groupZh[h.group]||''}</h3>

@@ -1,6 +1,8 @@
 /* 工具函数: 转义/解析/校验/标签 */
 const U = {
   esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); },
+  // 图片引用解析: "idb:xxx"(导入的真实照片) -> 对象URL; 其余(assets/路径)原样返回
+  img(ref){ if(!ref) return ''; if(ref.indexOf('idb:')===0) return (window.Photos&&Photos.urls[ref])||''; return ref; },
   now(){ const d=new Date(),p=n=>String(n).padStart(2,'0');
     return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`; },
   groupZh:{1:'一组',2:'二组',3:'三组',4:'四组',5:'五组',6:'六组'},

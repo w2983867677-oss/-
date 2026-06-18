@@ -86,6 +86,8 @@ const Store = {
     this.emit(); return {added,merged};
   },
   replaceAll(data){ this.data=data; this._persist(); this.addLog('恢复备份','全量',`${data.households.length}户`); this.emit(); },
+  // 数据替换向导应用整套新数据(户+地图+meta)
+  applyDataset(data,summary){ this.data=data; this._persist(); this.addLog('数据替换','整库导入',summary||`${(data.households||[]).length}户`); this.emit(); },
   reset(){ this.data=this._clone(window.INITIAL_DATA); this._persist(); this.addLog('恢复初始数据','全量',''); this.emit(); },
 
   // ---- 统计 ----

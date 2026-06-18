@@ -7,10 +7,14 @@
 """
 import openpyxl, os, re, json, shutil, hashlib, datetime
 
-ROOT = r"C:\Users\吴家聪\OneDrive\音乐\桌面\黑客松附件1-3"
+# 路径自动按脚本位置推断，换电脑/换村无需改代码:
+#   <ROOT>/村户慧眼台账系统/tools/生成数据_generate.py  ->  PROJ=村户慧眼台账系统, ROOT=其上级
+# 也可用环境变量覆盖: VHL_ROOT(数据根目录) / VHL_XLSX(指定Excel)
+HERE = os.path.dirname(os.path.abspath(__file__))
+PROJ = os.path.dirname(HERE)
+ROOT = os.environ.get("VHL_ROOT", os.path.dirname(PROJ))
 DATA = os.path.join(ROOT, "第1期数据")
-XLSX = os.path.join(DATA, "村民脱敏数据.xlsx")
-PROJ = os.path.join(ROOT, "村户慧眼台账系统")
+XLSX = os.environ.get("VHL_XLSX", os.path.join(DATA, "村民脱敏数据.xlsx"))
 
 A_AERIAL   = os.path.join(PROJ, "assets", "aerial")
 A_AERIAL_N = os.path.join(PROJ, "assets", "aerial_annotated")
