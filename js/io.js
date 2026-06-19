@@ -10,7 +10,21 @@ const IO={
     document.getElementById('exportPdf').onclick=()=>this.exportPdf();
     document.getElementById('exportImg').onclick=()=>this.exportImg();
     document.getElementById('downloadTemplate').onclick=()=>this.template();
-    document.getElementById('resetData').onclick=()=>{ if(confirm('恢复到初始演示数据？当前修改将丢失。')){ Store.reset(); U.toast('已恢复初始数据'); } };
+    document.getElementById('resetData').onclick=()=>this.resetData();
+  },
+  async resetData(){
+    if(!confirm('恢复到初始演示数据？当前修改将丢失。')) return;
+    // 本地服务模式: data/ledger-data.js 可能已被导入覆盖, 从 seed 备份真正还原, 并清掉
+    // localStorage 缓存(否则刷新后 Store.init 会优先读到旧的本地数据), 再刷新生效。
+    if(window.Sync && Sync.enabled){
+      const r=await Sync.restoreSeed();
+      try{ localStorage.removeItem(Store.KEY); }catch(e){}
+      Store.addLog('恢复初始数据', r==='restored'?'从seed还原':'全量', '');
+      U.toast('已恢复初始数据，正在刷新…');
+      setTimeout(()=>location.reload(), 400);
+      return;
+    }
+    Store.reset(); U.toast('已恢复初始数据');
   },
   // --- 解析 Excel 为 households(按表头关键字映射列, 适配其他村模板) ---
   parseExcel(file){

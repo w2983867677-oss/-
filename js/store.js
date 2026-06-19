@@ -7,8 +7,17 @@ const Store = {
   init(){
     let raw=null;
     try{ raw=JSON.parse(localStorage.getItem(this.KEY)); }catch(e){}
-    if(raw && raw.households){ this.data=raw; }
-    else { this.data=this._clone(window.INITIAL_DATA); this._persist(); }
+    const file=window.INITIAL_DATA;
+    const rev=d=>(d&&d.meta&&+d.meta.rev)||0;
+    // localStorage 按 origin 隔离(file:// 与 http://127.0.0.1 互不相通), 且本地服务会把最新数据
+    // 实时回写到 data/ledger-data.js。因此用修订戳 rev 取较新者: 文件更新就采用文件, 避免旧
+    // localStorage(尤其换 origin 后的残留)盖住已导入的新数据。
+    if(raw && raw.households){
+      if(file && file.households && rev(file) > rev(raw)){ this.data=this._clone(file); this._persist(); }
+      else { this.data=raw; }
+    } else {
+      this.data=this._clone(file); this._persist();
+    }
     try{ this.log=JSON.parse(localStorage.getItem(this.LOG))||[]; }catch(e){ this.log=[]; }
     try{ this.role=(JSON.parse(localStorage.getItem(this.SESS))||{}).role||'viewer'; }catch(e){}
     // 重建索引
@@ -18,7 +27,11 @@ const Store = {
   _reindex(){
     this.byUid={}; (this.data.households||[]).forEach(h=>this.byUid[h.uid]=h);
   },
-  _persist(){ try{ localStorage.setItem(this.KEY,JSON.stringify(this.data)); }catch(e){ U.toast('存储空间不足'); } this._reindex(); },
+  _persist(){
+    try{ this.data.meta=this.data.meta||{}; this.data.meta.rev=Date.now(); }catch(e){}
+    try{ localStorage.setItem(this.KEY,JSON.stringify(this.data)); }catch(e){ U.toast('存储空间不足'); }
+    this._reindex();
+  },
   _persistLog(){ try{ localStorage.setItem(this.LOG,JSON.stringify(this.log.slice(0,2000))); }catch(e){} },
 
   onChange(fn){ this.listeners.push(fn); },
@@ -70,6 +83,7 @@ const Store = {
   setPos(uid,x,y){
     const h=this.byUid[uid]; if(!h) return;
     h.x=x; h.y=y; this._persist(); // 点位调整不写日志(频繁)
+    if(window.Sync) Sync.scheduleSaveData();
   },
 
   // ---- 导入(合并/覆盖) ----

@@ -153,16 +153,36 @@ const Migrate = {
     const vr=Validate.run(d.households);
     if(vr.total>0 && !confirm(`校验发现 ${vr.total} 项问题(详见"导入校验"页)。仍要继续替换吗？`)) return;
 
-    U.toast('正在写入照片…');
-    // 1) 旧导入照片清空，写入新照片
-    if(Photos.available){ await Photos.clear(); await Photos.putMany(d.photoBlobs); }
-
-    // 2) 组装数据集
     const maps=JSON.parse(JSON.stringify(Store.maps()));
-    Object.keys(d.aerial).forEach(id=>{ const m=maps.find(x=>x.id===id); if(m){ m.image=Photos.ref('m/'+id); m.annotated=''; }});
-    // 航拍图 blob 单独写入
-    if(Photos.available && Object.keys(d.aerial).length){
-      const ab={}; Object.keys(d.aerial).forEach(id=>ab['m/'+id]=d.aerial[id]); await Photos.putMany(ab);
+    const ext=f=>{ const m=((f&&f.name)||'').match(/\.[^.]+$/); return m?m[0].toLowerCase():'.jpg'; };
+
+    if(window.Sync && Sync.enabled){
+      // 经本地服务打开：把照片写成 assets/imported/ 真实文件，台账存相对路径，重开即生效
+      U.toast('正在写入照片到 assets…');
+      await Sync.clearImported();
+      for(const h of d.households){
+        for(const m of (h.members||[])){
+          const file = m.code ? d.personIndex[m.code] : null;
+          if(file){ const rel='assets/imported/person/'+m.code+ext(file); await Sync.saveAsset(rel,file); m.photos=[rel]; }
+          else { m.photos=[]; }
+        }
+        const dr=this._parseDoor(h.doorplate);
+        let hp=[];
+        if(dr.g && dr.n!=null){ const file=d.houseIndex[dr.g+'-'+dr.n];
+          if(file){ const rel='assets/imported/house/'+dr.g+'-'+dr.n+ext(file); await Sync.saveAsset(rel,file); hp=[rel]; } }
+        h.housePhotos=hp;
+      }
+      for(const id of Object.keys(d.aerial)){ const file=d.aerial[id];
+        const rel='assets/imported/aerial/'+id+ext(file); await Sync.saveAsset(rel,file);
+        const m=maps.find(x=>x.id===id); if(m){ m.image=rel; m.annotated=''; } }
+    } else {
+      // file:// 直接打开：回退到 IndexedDB(刷新仍可用，但不写真实文件)
+      U.toast('正在写入照片…');
+      if(Photos.available){ await Photos.clear(); await Photos.putMany(d.photoBlobs); }
+      Object.keys(d.aerial).forEach(id=>{ const m=maps.find(x=>x.id===id); if(m){ m.image=Photos.ref('m/'+id); m.annotated=''; }});
+      if(Photos.available && Object.keys(d.aerial).length){
+        const ab={}; Object.keys(d.aerial).forEach(id=>ab['m/'+id]=d.aerial[id]); await Photos.putMany(ab);
+      }
     }
     let uid=0;
     d.households.forEach(h=>{

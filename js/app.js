@@ -50,6 +50,7 @@ const LogView={
 window.addEventListener('DOMContentLoaded',()=>{
   if(!window.INITIAL_DATA){ alert('未找到数据文件 data/ledger-data.js'); return; }
   Store.init();
+  if(window.Sync) Sync.init();
   document.getElementById('tabs').onclick=e=>{ const t=e.target.closest('.tab'); if(t)switchView(t.dataset.view); };
   Role.init(); MapView.init(); ListView.init(); Dashboard.init();
   Validate.init(); IO.init(); Migrate.init(); AI.init(); LogView.init(); Search.init();

@@ -181,7 +181,10 @@ const Drawer={
     const patch={group,seq,doorplate:$('f_door').value.trim(),phone:$('f_phone').value.trim(),
       planting:$('f_plant').value.trim(),breeding:$('f_breed').value.trim(),houseNote:$('f_note').value.trim(),
       mapId:$('f_map').value,members};
-    if(uid){ Store.updateHousehold(uid,patch); U.toast('已保存修改'); this.open(uid); }
+    if(uid){
+      if(seq) patch.id=`H${group}_${String(seq).padStart(3,'0')}`;
+      Store.updateHousehold(uid,patch); U.toast('已保存修改'); this.open(uid);
+    }
     else{
       patch.id=`H${group}_${String(seq||Store.all().filter(h=>h.group===group).length+1).padStart(3,'0')}`;
       patch.housePhotos=[]; patch.x=.5; patch.y=.5;
